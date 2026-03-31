@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from flask import Flask
 from threading import Thread
 import time
+import os
 
 # --- CONFIGURACIÓN DE PODER ---
-TOKEN = "8680611564:AAFsVCECa5O1E3EtyahRiFnmU0kJNhCPE50"
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
 ODDS_API_KEY = "5f2bff853d800818ada03b708d5c9740"
 SPORTS_API_KEY = "1de039af4aab5c0a59c37f3c61dbe798"
 
