@@ -7,32 +7,38 @@ from threading import Thread
 import time
 import os
 
-# --- CONFIGURACIÓN DE PODER ---
+# ==========================================================
+# 🛡️ SISTEMA DE HIERRO V8.0 - MODO FRANCOTIRADOR (P > 72%)
+# ==========================================================
+
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 ODDS_API_KEY = "5f2bff853d800818ada03b708d5c9740"
 SPORTS_API_KEY = "1de039af4aab5c0a59c37f3c61dbe798"
 
 bot = telebot.TeleBot(TOKEN)
 
-# ✅ NUEVO USUARIO AÑADIDO (139426773)
+# ✅ USUARIOS AUTORIZADOS
 USUARIOS_AUTORIZADOS = [789055410, 1068624379, 139426773]
 
-# ✅ CAPITAL ACTUALIZADO A 6000 Bs Y MULTIPLICADORES AJUSTADOS AL NUEVO RIESGO
-user_data = {"B": 6000.0, "L": 0.25, "C_base": 0.45, "limite_bank": 0.05}
+# ✅ BANCA Y GESTIÓN DE RIESGO (STAKE MÁXIMO 5%)
+user_data = {
+    "B": 6000.0, 
+    "L": 0.20,         # Coeficiente de agresividad bajo para seguridad
+    "C_base": 0.50, 
+    "limite_bank": 0.05 # Máximo 300 Bs por jugada
+}
 historial_dia = []
 
-# --- SERVIDOR WEB ---
+# --- SERVIDOR PARA MANTENERLO VIVO ---
 app = Flask('')
 @app.route('/')
-def home(): return "🦾 Sistema de Hierro V7.2 - Modo 75% Activo"
+def home(): return "🦾 Modo Francotirador V8.0 - Activo"
 
 def run(): app.run(host='0.0.0.0', port=8080)
 def keep_alive(): Thread(target=run).start()
 
-# --- FUNCIONES DE ANÁLISIS DE ESTADÍSTICAS (API-SPORTS) ---
-
+# --- DETECTOR DE FATIGA (API-SPORTS) ---
 def obtener_fatiga(team_name, sport):
-    """Detecta B2B (partido ayer) para NBA o NHL"""
     endpoint = "nba" if sport == "nba" else "hockey"
     url = f"https://v2.{endpoint}.api-sports.io/games"
     ayer = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -45,11 +51,10 @@ def obtener_fatiga(team_name, sport):
         return False
     except: return False
 
-# --- MOTOR DE ANÁLISIS INTEGRADO V7.2 ---
-
-def motor_hierro_v7(sport_key, limit=3):
+# --- MOTOR DE ANÁLISIS V8.0 (SEGURIDAD TOTAL) ---
+def motor_hierro_v8(sport_key, limit=3):
     ahora_vzla = datetime.now() - timedelta(hours=4)
-    limite_futuro = ahora_vzla + timedelta(hours=20) # Filtro de Horario Preciso
+    limite_futuro = ahora_vzla + timedelta(hours=18)
     encontrados = []
     partidos_procesados = set()
 
@@ -68,87 +73,90 @@ def motor_hierro_v7(sport_key, limit=3):
                 for market in bookmaker['markets']:
                     for outcome in market['outcomes']:
                         O = outcome['price']
-                        if O < 1.28: continue 
+                        
+                        # FILTRO 1: Cuota mínima lógica para este sistema
+                        if O < 1.30: continue 
 
-                        # ✅ FILTRO AJUSTADO PARA 72-75% (Sin límite de cuota alta, solo puro valor matemático)
-                        P_real = (1 / O) * 1.12 
-                        edge = (P_real * O) - 1
-                        if edge < 0.08: continue 
+                        # FILTRO 2: Probabilidad Implícita (Solo queremos favoritos claros)
+                        P_implicita = (1 / O)
+                        
+                        # Solo procesamos si la casa de apuestas da > 65% de probabilidad
+                        # Luego aplicaremos nuestros filtros para ver si llega al 72%
+                        if P_implicita < 0.65: continue 
 
-                        # --- FILTROS DE INTELIGENCIA ---
                         puntos_C = 0
                         alerta_f = ""
 
+                        # FILTRO 3: Fatiga en NBA/NHL
                         if 'nba' in sport_key or 'icehockey' in sport_key:
                             tipo = "nba" if 'nba' in sport_key else "nhl"
                             if obtener_fatiga(outcome['name'], tipo):
-                                puntos_C -= 0.25
-                                alerta_f = f"⚠️ FATIGA {tipo.upper()} DETECTADA"
+                                puntos_C -= 0.30
+                                alerta_f = "⚠️ RIESGO: EQUIPO EN BACK-TO-BACK"
                             else:
-                                puntos_C += 0.10
+                                puntos_C += 0.05
 
-                        C = min(1.0, max(0.1, user_data["C_base"] + puntos_C))
+                        # CALCULO DE CONFIANZA FINAL
+                        # Si tiene fatiga, la probabilidad real para nosotros baja
+                        P_real = P_implicita + puntos_C
+                        
+                        # 🔥 LA REGLA DE ORO: Si no llega al 72%, se descarta.
+                        if P_real < 0.72: continue
 
-                        num, den = (P_real * O) - 1, O - 1
-                        k_f = (num / den) if den > 0 else 0
-                        monto = min(user_data["B"] * k_f * C * user_data["L"], user_data["B"] * user_data["limite_bank"])
+                        edge = (P_real * O) - 1
+                        monto = min(user_data["B"] * edge * user_data["L"], user_data["B"] * user_data["limite_bank"])
 
-                        if monto > 1.5:
+                        if monto > 10: # No apostar migajas
                             encontrados.append({
                                 "evento": f"{partido['home_team']} vs {partido['away_team']}",
                                 "hora": f_vzla.strftime("%I:%M %p"),
                                 "pick": f"{outcome['name']}",
-                                "cuota": O, "P": P_real, "C": C, "monto": monto,
-                                "alerta": alerta_f, "edge": edge
+                                "cuota": O, "P": P_real, "monto": monto,
+                                "alerta": alerta_f
                             })
                             partidos_procesados.add(id_p)
 
-        return sorted(encontrados, key=lambda x: x['edge'], reverse=True)[:limit]
+        return sorted(encontrados, key=lambda x: x['P'], reverse=True)[:limit]
     except: return []
 
-# --- COMANDOS DEL BOT ---
-
-@bot.message_handler(func=lambda m: m.from_user.id in USUARIOS_AUTORIZADOS)
+# --- MANEJO DE COMANDOS ---
+@bot.message_handler(func=lambda m: True)
 def manejar_comandos(m):
-    global historial_dia
-    cid, txt = m.chat.id, m.text
+    cid, txt, uid = m.chat.id, m.text, m.from_user.id
+
+    # Verificación de Seguridad
+    if uid not in USUARIOS_AUTORIZADOS:
+        bot.send_message(cid, "❌ No tienes autorización para acceder al Sistema de Hierro.")
+        return
+
+    if '/start' in txt:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add('Fútbol ⚽', 'NBA 🏀', 'NHL 🏒', 'Banca 💰')
+        bot.send_message(cid, "🦾 **SISTEMA DE HIERRO V8.0**\n\nModo Francotirador activado. Solo picks con >72% de probabilidad real.", reply_markup=markup)
+        return
 
     if 'Fútbol' in txt:
-        bot.send_message(cid, "🔎 Escaneando Ligas Top Europeas (Filtro 75%)...")
-        res = motor_hierro_v7('soccer_spain_la_liga,soccer_england_premier_league,soccer_italy_serie_a,soccer_germany_bundesliga')
+        bot.send_message(cid, "🔎 Buscando favoritos sólidos en Europa...")
+        res = motor_hierro_v8('soccer_spain_la_liga,soccer_england_premier_league,soccer_italy_serie_a,soccer_germany_bundesliga')
     elif 'NBA' in txt:
-        bot.send_message(cid, "🏀 Escaneando NBA + Filtro B2B (75%)...")
-        res = motor_hierro_v7('basketball_nba')
+        bot.send_message(cid, "🏀 Analizando fatiga y cuotas NBA...")
+        res = motor_hierro_v8('basketball_nba')
     elif 'NHL' in txt:
-        bot.send_message(cid, "🏒 Escaneando NHL + Filtro B2B (75%)...")
-        res = motor_hierro_v7('icehockey_nhl')
-    elif 'Dupla' in txt:
-        bot.send_message(cid, "🔀 Generando Dupla de Hierro (Combinada)...")
-        p1 = motor_hierro_v7('basketball_nba,soccer_england_premier_league', 1)
-        p2 = motor_hierro_v7('icehockey_nhl,soccer_spain_la_liga', 1)
-        res_dupla = p1 + p2
-        if len(res_dupla) < 2:
-            bot.send_message(cid, "❌ No hay suficientes picks de alta confianza para una dupla segura.")
-            return
-        c_total = res_dupla[0]['cuota'] * res_dupla[1]['cuota']
-        monto_d = user_data["B"] * 0.01 # 1% fijo por ser combinada
-        msg = f"🔀 **DUPLA DE HIERRO**\n\n1️⃣ {res_dupla[0]['evento']}\n🎯 {res_dupla[0]['pick']}\n\n2️⃣ {res_dupla[1]['evento']}\n🎯 {res_dupla[1]['pick']}\n\n🔥 **CUOTA: @{c_total:.2f}**\n💰 **APUESTA: {monto_d:.2f} Bs.**"
-        bot.send_message(cid, msg, parse_mode="Markdown")
-        return
+        bot.send_message(cid, "🏒 Analizando hielo y fatiga NHL...")
+        res = motor_hierro_v8('icehockey_nhl')
     elif 'Banca' in txt:
-        bot.send_message(cid, f"💰 **BANCA ACTUAL: {user_data['B']:.2f} Bs.**")
+        bot.send_message(cid, f"💰 **BANCA ACTUAL: {user_data['B']:.2f} Bs.**\n🛡️ Riesgo máx: 300.00 Bs.")
         return
     else: return
 
     if not res:
-        bot.send_message(cid, "❌ Filtros de Hierro: No hay picks seguros ahora. Reintenta más tarde.")
+        bot.send_message(cid, "❌ No hay picks que cumplan el estándar de seguridad (72%) ahora mismo.")
     else:
-        msg = "🛡️ **CARTERA DE HIERRO V7.2**\n\n"
+        msg = "🛡️ **SELECCIÓN DE HIERRO (ALTA CONFIANZA)**\n\n"
         for r in res:
-            historial_dia.append(r)
             msg += f"⏰ **{r['hora']}** | {r['evento']}\n🎯 Pick: `{r['pick']}` | @{r['cuota']}\n"
             if r['alerta']: msg += f"{r['alerta']}\n"
-            msg += f"📈 P: {r['P']:.1%} | Confianza: {r['C']:.2f}\n💰 **APUESTA: {r['monto']:.2f} Bs.**\n\n"
+            msg += f"📊 Probabilidad Real: {r['P']:.1%}\n💰 **APUESTA SUGERIDA: {r['monto']:.2f} Bs.**\n\n"
         bot.send_message(cid, msg, parse_mode="Markdown")
 
 if __name__ == "__main__":
