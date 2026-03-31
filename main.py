@@ -13,14 +13,18 @@ ODDS_API_KEY = "5f2bff853d800818ada03b708d5c9740"
 SPORTS_API_KEY = "1de039af4aab5c0a59c37f3c61dbe798"
 
 bot = telebot.TeleBot(TOKEN)
-USUARIOS_AUTORIZADOS = [789055410, 1068624379]
-user_data = {"B": 1500.0, "L": 0.20, "C_base": 0.4, "limite_bank": 0.02}
+
+# ✅ NUEVO USUARIO AÑADIDO (139426773)
+USUARIOS_AUTORIZADOS = [789055410, 1068624379, 139426773]
+
+# ✅ CAPITAL ACTUALIZADO A 6000 Bs Y MULTIPLICADORES AJUSTADOS AL NUEVO RIESGO
+user_data = {"B": 6000.0, "L": 0.25, "C_base": 0.45, "limite_bank": 0.05}
 historial_dia = []
 
 # --- SERVIDOR WEB ---
 app = Flask('')
 @app.route('/')
-def home(): return "🦾 Sistema de Hierro V7.1 - Omnisciente Activo"
+def home(): return "🦾 Sistema de Hierro V7.2 - Modo 75% Activo"
 
 def run(): app.run(host='0.0.0.0', port=8080)
 def keep_alive(): Thread(target=run).start()
@@ -41,7 +45,7 @@ def obtener_fatiga(team_name, sport):
         return False
     except: return False
 
-# --- MOTOR DE ANÁLISIS INTEGRADO V7.1 ---
+# --- MOTOR DE ANÁLISIS INTEGRADO V7.2 ---
 
 def motor_hierro_v7(sport_key, limit=3):
     ahora_vzla = datetime.now() - timedelta(hours=4)
@@ -66,9 +70,10 @@ def motor_hierro_v7(sport_key, limit=3):
                         O = outcome['price']
                         if O < 1.28: continue 
 
-                        P_real = (1 / O) * 1.14 
+                        # ✅ FILTRO AJUSTADO PARA 72-75% (Sin límite de cuota alta, solo puro valor matemático)
+                        P_real = (1 / O) * 1.12 
                         edge = (P_real * O) - 1
-                        if edge < 0.15: continue 
+                        if edge < 0.08: continue 
 
                         # --- FILTROS DE INTELIGENCIA ---
                         puntos_C = 0
@@ -109,13 +114,13 @@ def manejar_comandos(m):
     cid, txt = m.chat.id, m.text
 
     if 'Fútbol' in txt:
-        bot.send_message(cid, "🔎 Escaneando Ligas Top Europeas...")
+        bot.send_message(cid, "🔎 Escaneando Ligas Top Europeas (Filtro 75%)...")
         res = motor_hierro_v7('soccer_spain_la_liga,soccer_england_premier_league,soccer_italy_serie_a,soccer_germany_bundesliga')
     elif 'NBA' in txt:
-        bot.send_message(cid, "🏀 Escaneando NBA + Filtro B2B...")
+        bot.send_message(cid, "🏀 Escaneando NBA + Filtro B2B (75%)...")
         res = motor_hierro_v7('basketball_nba')
     elif 'NHL' in txt:
-        bot.send_message(cid, "🏒 Escaneando NHL + Filtro B2B...")
+        bot.send_message(cid, "🏒 Escaneando NHL + Filtro B2B (75%)...")
         res = motor_hierro_v7('icehockey_nhl')
     elif 'Dupla' in txt:
         bot.send_message(cid, "🔀 Generando Dupla de Hierro (Combinada)...")
@@ -138,7 +143,7 @@ def manejar_comandos(m):
     if not res:
         bot.send_message(cid, "❌ Filtros de Hierro: No hay picks seguros ahora. Reintenta más tarde.")
     else:
-        msg = "🛡️ **CARTERA DE HIERRO V7.1**\n\n"
+        msg = "🛡️ **CARTERA DE HIERRO V7.2**\n\n"
         for r in res:
             historial_dia.append(r)
             msg += f"⏰ **{r['hora']}** | {r['evento']}\n🎯 Pick: `{r['pick']}` | @{r['cuota']}\n"
